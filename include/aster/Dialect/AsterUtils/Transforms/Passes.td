@@ -59,11 +59,46 @@ def FromAnyToPoison : Pass<"aster-from-any-to-poison"> {
   let summary = "Transform FromAnyOp to ub.poison";
   let description = [{
     This pass transforms `aster_utils.from_any` operations into `ub.poison`
-    operations. This is useful for lowering type-erased values to undefined
-    behavior when the original type cannot be recovered.
+    operations. This is useful for lowering type-erased values when the
+    original type cannot be recovered.
   }];
   let dependentDialects = [
     "mlir::ub::UBDialect"
+  ];
+}
+
+def DecomposePtrOffset : Pass<"aster-decompose-ptr-offset"> {
+  let summary = "Decompose ptr.ptr_add offsets into constant, uniform, and dynamic components";
+  let description = [{
+    This pass decomposes `ptr.ptr_add` offsets by analyzing the offset
+    expression tree and splitting it into three components:
+    - `const_offset`: A constant offset known at compile time
+    - `uniform_offset`: An offset that is uniform across all threads
+    - `offset`: The remaining non-uniform offset
+
+    The pass walks the definition of the offset operand while it's comprised
+    of supported arithmetic operations (muli, shli, shrui, shrsi, divui,
+    divsi, addi), and extracts constant and uniform components from the
+    expression tree.
+
+    The transformation requires that all three resulting offsets are
+    non-negative to ensure correctness.
+
+    Example transformation:
+    ```mlir
+    // Before: x1 = (a + b + y) * t0 + u
+    // where b and t0 are uniform, y and u are constants
+    %ptr = ptr.ptr_add %p, %x1 : !ptr.ptr, i64
+
+    // After:
+    %ptr = aster_utils.ptr_add %p, %offset, %uniform const_offset = u
+        : !ptr.ptr, i64
+    // where uniform = t0 * (y + b), offset = t0 * a
+    ```
+  }];
+  let dependentDialects = [
+    "mlir::aster::aster_utils::AsterUtilsDialect",
+    "mlir::arith::ArithDialect"
   ];
 }
 

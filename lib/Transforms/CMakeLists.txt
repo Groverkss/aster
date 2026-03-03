@@ -1,4 +1,5 @@
 add_mlir_library(AsterTransforms
+  CanonicalizePtrs.cpp
   ConstexprExpansion.cpp
   LDSMultibufferPrep.cpp
   OpScheduling.cpp
@@ -22,6 +23,7 @@ add_mlir_library(AsterTransforms
   MLIRGPUDialect
   MLIRIR
   MLIRPass
+  MLIRPtrDialect
   MLIRSCFDialect
   MLIRSCFUtils
   MLIRUBDialect
